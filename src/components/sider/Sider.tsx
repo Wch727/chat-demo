@@ -1,7 +1,12 @@
 import clsx from 'clsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconPanelLeftOutline16, IconSettingsOutline16, NewChatIcon } from '../base/icons.js'
+import {
+  IconPanelLeftOutline16,
+  IconSearchOutline16,
+  IconSettingsOutline16,
+  NewChatIcon,
+} from '../base/icons.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
 import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
@@ -20,8 +25,17 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const t = useTranslate()
   const sessions = useChatStore((state) => state.sessions)
   const activeId = useChatStore((state) => state.activeId)
+  const [query, setQuery] = useState('')
+  const search = useDeferredValue(query.trim().normalize('NFKC').toLocaleLowerCase())
   const [now, setNow] = useState(Date.now)
-  const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
+  const groups = useMemo(() => {
+    const matches = search
+      ? sessions.filter(({ title }) =>
+          (title || t('untitledChat')).normalize('NFKC').toLocaleLowerCase().includes(search)
+        )
+      : sessions
+    return groupSessions(matches, now, t)
+  }, [sessions, now, search, t])
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
 
@@ -74,8 +88,25 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         </span>
         {t('newChat')}
       </button>
+      <label className={styles.search}>
+        <span aria-hidden="true">
+          <IconSearchOutline16 />
+        </span>
+        <input
+          type="search"
+          aria-label={t('historyTitleSearch')}
+          placeholder={t('historyTitleSearch')}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
       <div className={styles.listWrap}>
         <div className={styles.list}>
+          {search && groups.length === 0 ? (
+            <p className={styles.noMatches} role="status">
+              {t('historyTitleNoMatches')}
+            </p>
+          ) : null}
           {groups.map((group) => (
             <div key={group.key} className={styles.section}>
               <div className={styles.sectionHeader}>{group.label}</div>

@@ -20,19 +20,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 21px;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 600;
+  margin: 0 0 26px;
+  font-size: clamp(24px, 4vw, 40px);
+  line-height: 1.18;
+  font-family: var(--chat-heading-font);
+  font-weight: 400;
   text-align: center;
-  color: var(--dsw-alias-label-primary);
+  text-wrap: balance;
+  color: var(--chat-ink);
 }
 
 @media (max-width: 439px) {
   .greeting {
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 500;
+    font-size: 25px;
+    line-height: 1.3;
   }
 }
 

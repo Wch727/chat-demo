@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { getAbortReason, throwIfAborted } from '../../utils/abort.js'
 import { createId } from '../../utils/id.js'
-import { ApiError, streamMessage } from '../api/client.js'
-import type { ChatModel, CreateMessageRequest } from '../api/types.js'
+import { API_ORIGIN, ApiError, streamMessage } from '../api/client.js'
+import type { ChatModel, CreateMessageRequest, MessageUsage } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import {
   cancelUpload,
@@ -38,6 +38,7 @@ import {
   type SessionSummary,
   type UserMessage,
 } from './types.js'
+import { estimateTokenCharge, getReplyRequests } from './usage.js'
 
 /** deepseek-flash 同时支持深度思考与图片输入 */
 const MODEL: ChatModel = 'deepseek-flash'
@@ -273,6 +274,7 @@ const createReply = (): AssistantMessage => {
     prefix: true,
     status: 'pending',
     blocks: [],
+    requestStats: [],
   }
 }
 
@@ -392,53 +394,28 @@ const waitForIdle = (sessionId?: string) =>
     })
   })
 
-/**
- * 替换历史对话：先写入暂存，成功后原子替换旧记录；写入为空即删除全部会话与附件。
- * 期间停止生成并禁止修改会话；失败时清除暂存，保留原有记录。
- */
-export const replaceHistory = async (write: () => Promise<void>): Promise<number> => {
+/** 历史导入和全部删除期间停止生成、禁止修改会话，并在结束时恢复读取。 */
+const updateHistory = async <T>(apply: () => Promise<T>): Promise<T> => {
   if (get().importingHistory) {
-    throw new Error('History replacement is already in progress')
+    throw new Error('A history operation is already in progress')
   }
   set({ importingHistory: true })
   try {
     for (const controller of Object.values(get().streaming)) {
       controller.abort()
     }
-    // 已开始的单条删除先同步到内存，避免本次替换失败后列表残留已被删除的记录。
+    // 先等已开始的单条删除落盘。
     await Promise.all(deletionTasks)
     historyEpoch += 1
     initTask = undefined
     sessionLoads.clear()
     await waitForIdle()
-    await db.clearStaging()
-    let summaries: SessionSummary[]
-    try {
-      await write()
-      summaries = await db.commitStaging()
-    } catch (error) {
-      await db.clearStaging().catch(db.reportStorageError('clear unfinished history replacement'))
-      throw error
-    }
-    sessionAccess.clear()
-    unsavedSessions.clear()
-    pendingFiles.clear()
-    clearAllDrafts()
-    set({
-      ready: true,
-      initError: false,
-      sessions: sortSessions(summaries),
-      sessionCache: {},
-      sessionLoadErrors: {},
-      sessionSaveErrors: {},
-      activeId: null,
-    })
-    return summaries.length
+    return await apply()
   } finally {
     set({ importingHistory: false })
     retrySaveSessions()
     const { activeId, ready } = get()
-    // 替换失败时恢复被取消的详情读取，原有记录继续可用。
+    // 如果操作前的详情读取尚未完成，在这里恢复。
     if (activeId !== null) {
       void ensureSessionLoaded(activeId)
     } else if (!ready) {
@@ -446,6 +423,53 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     }
   }
 }
+
+export const mergeHistory = (write: () => Promise<void>) =>
+  updateHistory(async () => {
+    await db.clearStaging()
+    try {
+      await write()
+      const pendingFileIds = new Set<string>()
+      for (const id of unsavedSessions) {
+        for (const message of getSession(id)?.messages ?? []) {
+          if (message.role === 'user') {
+            message.files.forEach((file) => pendingFileIds.add(file.id))
+          }
+        }
+      }
+      const { summaries, added, skipped } = await db.mergeStaging(unsavedSessions, pendingFileIds)
+      const byId = new Map(summaries.map((summary) => [summary.id, summary]))
+      for (const id of unsavedSessions) {
+        const session = getSession(id)
+        if (session) {
+          byId.set(id, toSessionSummary(session))
+        }
+      }
+      set({ ready: true, initError: false, sessions: sortSessions([...byId.values()]) })
+      return { added, skipped }
+    } catch (error) {
+      await db.clearStaging().catch(db.reportStorageError('clear unfinished history import'))
+      throw error
+    }
+  })
+
+export const clearLocalHistory = () =>
+  updateHistory(async () => {
+    await db.clearHistoryData()
+    sessionAccess.clear()
+    unsavedSessions.clear()
+    pendingFiles.clear()
+    clearAllDrafts()
+    set({
+      ready: true,
+      initError: false,
+      sessions: [],
+      sessionCache: {},
+      sessionLoadErrors: {},
+      sessionSaveErrors: {},
+      activeId: null,
+    })
+  })
 
 export const newChat = () => {
   if (!get().importingHistory) {
@@ -717,6 +741,7 @@ export const continueReply = (sessionId: string, messageId: string) => {
   const { thinking, search } = useSettings.getState()
   const reply: AssistantMessage = {
     ...previous,
+    requestStats: getReplyRequests(previous),
     // 未记录请求配置的回复，续写时使用默认模型和当前开关。
     model: previous.model ?? MODEL,
     thinking: previous.thinking ?? thinking,
@@ -1021,10 +1046,13 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           initial.thinking ?? false,
           latestReminder
         )
+        const model = initial.model ?? MODEL
+        const sentAt = Date.now()
+        const started = performance.now()
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            model: initial.model ?? MODEL,
+            model,
             system: SYSTEM_PROMPT,
             messages,
             thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
@@ -1035,25 +1063,55 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           controller.signal
         )
         const blockIndexes = new Map<number, number>()
-        for await (const event of events) {
-          receivedContent ||= event.type === 'content_block_start'
-          if (
-            event.type === 'message_delta' &&
-            (event.delta.stop_reason === 'end_turn' || event.delta.stop_reason === 'max_tokens') &&
-            event.delta.title?.trim() &&
-            titleRequests.has(controller) &&
-            !controller.signal.aborted &&
-            !get().importingHistory
-          ) {
-            const title = event.delta.title.trim()
-            updateSession(sessionId, (session) => (session.title ? session : { ...session, title }))
-            titleRequests.delete(controller)
+        let usage: MessageUsage | undefined
+        let firstTextMs: number | undefined
+        try {
+          for await (const event of events) {
+            if (event.type === 'message_delta' && event.usage) {
+              usage = event.usage
+            }
+            if (
+              event.type === 'content_block_delta' &&
+              event.delta.type === 'text_delta' &&
+              event.delta.text
+            ) {
+              firstTextMs ??= Math.round(performance.now() - started)
+            }
+            receivedContent ||= event.type === 'content_block_start'
+            if (
+              event.type === 'message_delta' &&
+              (event.delta.stop_reason === 'end_turn' ||
+                event.delta.stop_reason === 'max_tokens') &&
+              event.delta.title?.trim() &&
+              titleRequests.has(controller) &&
+              !controller.signal.aborted &&
+              !get().importingHistory
+            ) {
+              const title = event.delta.title.trim()
+              updateSession(sessionId, (session) =>
+                session.title ? session : { ...session, title }
+              )
+              titleRequests.delete(controller)
+            }
+            reply = applyEvent(reply, event, Date.now(), blockIndexes)
+            if (document.visibilityState === 'hidden') {
+              flush()
+            } else {
+              frame ||= requestAnimationFrame(flush)
+            }
           }
-          reply = applyEvent(reply, event, Date.now(), blockIndexes)
-          if (document.visibilityState === 'hidden') {
-            flush()
-          } else {
-            frame ||= requestAnimationFrame(flush)
+        } finally {
+          const elapsedMs = Math.round(performance.now() - started)
+          const charge =
+            usage && API_ORIGIN === 'https://api.deepseek.com'
+              ? estimateTokenCharge(model, usage, sentAt, sentAt + elapsedMs)
+              : undefined
+          reply = {
+            ...reply,
+            requestStats: [
+              ...(reply.requestStats ?? []),
+              { elapsedMs, firstTextMs, usage, charge },
+            ],
           }
         }
         reply = settleReply(reply, 'done', Date.now())

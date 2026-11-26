@@ -19,7 +19,9 @@ export const MobileHeader = ({ title }: { title?: string }) => {
       />
       {title === undefined ? null : (
         <>
-          <div className={styles.title}>{title}</div>
+          <h1 className={styles.title} title={title}>
+            {title}
+          </h1>
           <IconButton
             size="xl"
             tone="primary"

@@ -73,6 +73,21 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
  */
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
+export type TokenCharge = {
+  /** 按空闲价保存各项费用，单位为一亿分之一元。 */
+  input: number
+  cacheRead: number
+  output: number
+  tier: 'offPeak' | 'peak' | 'uncertain'
+}
+
+export type ReplyRequestStats = {
+  elapsedMs?: number
+  firstTextMs?: number
+  usage?: MessageUsage
+  charge?: TokenCharge
+}
+
 export type AssistantMessage = MessageBranch & {
   id: string
   role: 'assistant'
@@ -94,6 +109,8 @@ export type AssistantMessage = MessageBranch & {
   stopDetails?: StopDetails
   /** 最近一次请求的用量，续写后更新 */
   usage?: MessageUsage
+  /** 每次请求单独结算；旧会话可能只保存了最近一次用量。 */
+  requestStats?: ReplyRequestStats[]
   error?: {
     /** upload：发送前补传附件失败，请求没有发出 */
     kind: ApiErrorKind | 'upload'

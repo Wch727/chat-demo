@@ -16,6 +16,7 @@ import { toggleSearchPanel, useSearchPanel } from '../search/searchPanelState.js
 import { ReadAloudButton } from './ReadAloudButton.js'
 import { CopyButton } from './CopyButton.js'
 import { ReplyArea } from './ReplyArea.js'
+import { ReplyStatusLine } from './ReplyStatusLine.js'
 import { useReplyView } from './useReplyView.js'
 import {
   BranchSwitcher,
@@ -29,6 +30,7 @@ const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 export const AssistantMessage = memo(function AssistantMessage({
   sessionId,
   message,
+  sessionUsageLabel,
   isLast,
   streaming,
   busy,
@@ -37,6 +39,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 }: {
   sessionId: string
   message: AssistantMessageType
+  sessionUsageLabel: string
   isLast: boolean
   streaming: boolean
   busy: boolean
@@ -138,6 +141,7 @@ export const AssistantMessage = memo(function AssistantMessage({
           </span>
         </div>
       ) : null}
+      {!streaming ? <ReplyStatusLine message={message} sessionLabel={sessionUsageLabel} /> : null}
       {streaming ? null : (
         <div className={styles.bottom}>
           <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
