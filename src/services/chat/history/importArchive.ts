@@ -85,7 +85,7 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
 /**
  * 按会话读取 JSON 和对应文件，保留归档物理顺序的格式校验。
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
- * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
+ * 写入导入暂存存储；调用方负责先清空暂存，校验成功后提交新会话，失败时清理暂存。
  */
 export const importArchive = async (
   file: File,

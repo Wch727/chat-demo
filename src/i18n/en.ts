@@ -7,6 +7,34 @@ export const en = {
   collapseSiderbarButton: 'Close sidebar',
   newChat: 'New chat',
   untitledChat: 'New chat',
+  statusSentAt: 'Sent at {time}',
+  statusDetails: 'Toggle usage details',
+  statusElapsed: 'Took {time}',
+  statusInOut: '{input} in / {output} out tok',
+  statusCache: 'Cache hits {tokens} ({percent}%)',
+  statusCost: 'Reply ≈ {cost}',
+  statusPartialCost: 'Known reply cost ≈ {cost}',
+  statusSession: 'Chat {tokens} tok · ≈ {cost}',
+  statusSessionPartial: 'Chat recorded {tokens} tok · known cost {cost}',
+  statusNoUsage: 'Usage unavailable',
+  statusInput: 'Total input',
+  statusCacheMiss: 'Cache misses',
+  statusCacheRead: 'Cache reads',
+  statusCacheWrite: 'Cache writes',
+  statusOutput: 'Output',
+  statusTotal: 'Total tokens',
+  statusFirstText: 'Wait for first text',
+  statusMissingUsage: 'Requests in this reply without final usage: {count}.',
+  statusMissingCost: 'Requests in this reply without a cost estimate: {count}.',
+  statusPriceRange:
+    'The estimate shows off-peak and peak prices when the billing period is uncertain.',
+  statusPriceBreakdown:
+    'Estimated cost · cache misses {input} · cache reads {cache} · output {output}',
+  statusSessionScope:
+    'Chat totals include all branches, regenerated replies, and continuations. Only recorded usage and estimated costs are included.',
+  statusPricingNote:
+    'Estimates use the CNY model token rates. File parsing and speech have separate charges.',
+  statusPricingLink: 'DeepSeek pricing',
   sessionLoading: 'Loading chats...',
   sessionListLoadFailed: 'Unable to load the chat list. Please try again.',
   sessionLoadFailed: 'Unable to load this chat. Please try again.',
@@ -114,11 +142,13 @@ export const en = {
   historyImportConfirm: 'Import',
   historyImportConfirmTitle: 'Import chat history?',
   historyImportConfirmDescription:
-    'The uploaded chat history will replace all your current chats. Import anyway?',
+    'Import new chats from the ZIP. Keep the local copy when a chat ID already exists.',
   historyImportDescription:
-    'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek.',
+    'Add new chats from a DeepSeek ZIP export and keep your existing chats and attachments.',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
+  historyImportedWithDuplicates:
+    'Imported {count} chats. Skipped {skipped} matching local chat IDs.',
   historyImportFailed:
     'File import failed. The file format may be invalid, or the ZIP file may use an older chat export format. Please export your chat history from DeepSeek again and retry the import.',
   historyExportFailed: 'Export failed: {message}',

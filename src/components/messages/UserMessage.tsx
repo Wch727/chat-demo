@@ -19,6 +19,13 @@ import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
 import styles from './UserMessage.module.css'
 
+const sendTime = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
 export const UserMessage = memo(function UserMessage({
   sessionId,
   message,
@@ -130,6 +137,15 @@ export const UserMessage = memo(function UserMessage({
               />
             </div>
             <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
+            {Number.isFinite(message.createdAt) ? (
+              <time
+                className={styles.sentAt}
+                dateTime={new Date(message.createdAt).toISOString()}
+                title={new Date(message.createdAt).toLocaleString()}
+              >
+                {t('statusSentAt', { time: sendTime.format(message.createdAt) })}
+              </time>
+            ) : null}
           </div>
         </>
       )}

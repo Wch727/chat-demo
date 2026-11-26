@@ -442,7 +442,7 @@ const SettingCell = ({
   )
 }
 
-/** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/** 确认后校验 ZIP 并合并新会话。 */
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [progress, setProgress] = useState<{ processed: number; total?: number } | null>(null)
@@ -458,10 +458,17 @@ const useHistoryImport = () => {
     setProgress({ processed: 0 })
     setStatus(null)
     try {
-      const count = await importHistory(file, (processed, total) =>
+      const { added, skipped } = await importHistory(file, (processed, total) =>
         setProgress({ processed, total })
       )
-      setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
+      setStatus({
+        key: skipped
+          ? 'historyImportedWithDuplicates'
+          : added === 1
+            ? 'historyImportedOne'
+            : 'historyImported',
+        params: { count: added, skipped },
+      })
     } catch {
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
@@ -485,7 +492,6 @@ const useHistoryImport = () => {
   }
 }
 
-/** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
 const ImportHistory = ({
   historyImport,
   disabled,
