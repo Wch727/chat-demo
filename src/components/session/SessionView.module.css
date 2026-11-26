@@ -23,7 +23,8 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 16px;
-  font-weight: 680;
+  font-family: var(--chat-heading-font);
+  font-weight: 400;
   line-height: 1.4;
   color: var(--chat-ink);
 }

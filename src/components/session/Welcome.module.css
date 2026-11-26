@@ -23,7 +23,8 @@
   margin: 0 0 26px;
   font-size: clamp(24px, 4vw, 40px);
   line-height: 1.18;
-  font-weight: 720;
+  font-family: var(--chat-heading-font);
+  font-weight: 400;
   text-align: center;
   text-wrap: balance;
   color: var(--chat-ink);
