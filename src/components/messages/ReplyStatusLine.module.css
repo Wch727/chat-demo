@@ -1,5 +1,9 @@
 .status {
-  margin-top: 10px;
+  margin-top: 11px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--chat-edge);
+  border-radius: 9px;
+  background: var(--chat-surface);
   font-size: 12px;
   line-height: 1.55;
   color: var(--dsw-alias-label-tertiary);
@@ -11,7 +15,9 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 10px;
-  min-height: 24px;
+  min-height: 27px;
+  padding: 6px 10px;
+  box-sizing: border-box;
   cursor: pointer;
   list-style: none;
 
@@ -24,9 +30,15 @@
     color: var(--dsw-alias-brand-text);
   }
 
+  &:hover {
+    background: var(--chat-tint);
+    border-radius: inherit;
+  }
+
   &:focus-visible {
     outline: 2px solid var(--dsw-alias-brand-primary);
-    outline-offset: 3px;
+    outline-offset: -2px;
+    border-radius: inherit;
   }
 }
 
@@ -39,13 +51,14 @@
 }
 
 .session {
-  font-weight: 600;
-  color: var(--dsw-alias-label-secondary);
+  margin-inline-start: auto;
+  color: var(--chat-ink);
+  font-weight: 650;
 }
 
 .panel {
   padding: 10px 12px;
-  border-inline-start: 2px solid var(--dsw-alias-border-l2);
+  border-top: 1px solid var(--chat-edge);
 
   p {
     margin: 5px 0 0;
@@ -53,6 +66,13 @@
 
   a {
     color: var(--dsw-alias-brand-text);
+  }
+}
+
+@media (max-width: 560px) {
+  .session {
+    flex-basis: 100%;
+    margin-inline-start: 0;
   }
 }
 

@@ -4,6 +4,8 @@
   height: 500px;
   max-height: calc(100vh - 32px);
   padding: 19px 24px 22px;
+  border: 1px solid var(--chat-edge);
+  background: var(--chat-surface);
 }
 
 .dialogMain {
@@ -49,9 +51,14 @@
     flex-shrink: 0;
   }
 
-  &:hover,
-  &.navItemActive {
+  &:hover {
     background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+
+  &.navItemActive {
+    color: var(--chat-accent);
+    background: var(--chat-tint);
+    font-weight: 650;
   }
 
   &:focus-visible {

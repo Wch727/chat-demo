@@ -251,3 +251,43 @@ body {
 
   --dsw-font-xs-13: 13px/20px var(--dsw-font-family);
 }
+
+body,
+body[data-ds-dark-theme] {
+  --chat-canvas: #f6f9fa;
+  --chat-surface: #fff;
+  --chat-edge: #d8e4e6;
+  --chat-accent: #096963;
+  --chat-tint: #e5f3ef;
+  --chat-ink: #17343a;
+  --dsw-alias-bg-base: var(--chat-canvas);
+  --dsw-alias-brand-primary: var(--chat-accent);
+  --dsw-alias-brand-primary-invert: var(--chat-accent);
+  --dsw-alias-brand-text: var(--chat-accent);
+  --dsw-alias-button-primary-fill: var(--chat-accent);
+  --dsw-alias-button-primary-hover: #064e4a;
+  --dsw-alias-button-ghost-active-border: #a7cdc5;
+  --dsw-alias-button-ghost-active-fill: var(--chat-tint);
+  --dsw-alias-button-ghost-active-hover: #d9eee8;
+  --dsw-specific-input-major: var(--chat-surface);
+  --dsw-specific-bubble: var(--chat-tint);
+  --dsw-specific-sidebar-fill: #edf3f4;
+  --dsw-specific-sidebar-nav-item-active-accent: #d7ebe7;
+  --dsw-specific-sidebar-nav-item-hover: #e3edef;
+}
+
+body[data-ds-dark-theme] {
+  --chat-canvas: #151e21;
+  --chat-surface: #1c292c;
+  --chat-edge: #34464a;
+  --chat-accent: #86dcce;
+  --chat-tint: #213b3a;
+  --chat-ink: #e7f4f3;
+  --dsw-alias-button-primary-fill: #216d62;
+  --dsw-alias-button-primary-hover: #267c6e;
+  --dsw-alias-button-ghost-active-border: #48746c;
+  --dsw-alias-button-ghost-active-hover: #2a4a46;
+  --dsw-specific-sidebar-fill: #192529;
+  --dsw-specific-sidebar-nav-item-active-accent: #254642;
+  --dsw-specific-sidebar-nav-item-hover: #223237;
+}
